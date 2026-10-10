@@ -21,6 +21,12 @@ button.box:focus-visible{outline:3px solid #d62828;outline-offset:3px}
 .msg{transform:translate(-50%,-100%);max-width:70vw;text-align:center;font-size:.95rem;padding:4px 12px;pointer-events:none;animation:pop 2.4s forwards}
 @keyframes pop{0%{opacity:0;margin-top:8px}10%{opacity:1;margin-top:0}80%{opacity:1;margin-top:0}100%{opacity:0;margin-top:-14px}}
 @media (prefers-reduced-motion:reduce){.msg{animation:fade 2.4s forwards}@keyframes fade{0%,80%{opacity:1}100%{opacity:0}}}
+#dogpop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);transform-origin:50% 100%;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;z-index:5;touch-action:manipulation}
+#dogpop[hidden]{display:none}
+@keyframes popin{0%{transform:translate(-50%,-50%) scale(0)}55%{transform:translate(-50%,-50%) scale(1.15)}78%{transform:translate(-50%,-50%) scale(.94)}100%{transform:translate(-50%,-50%) scale(1)}}
+@keyframes popout{to{transform:translate(-50%,-50%) scale(0)}}
+@keyframes hop{0%,100%{transform:translate(-50%,-50%)}40%{transform:translate(-50%,calc(-50% - 14px))}}
+@media (prefers-reduced-motion:reduce){#dogpop{animation:none!important}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
@@ -28,6 +34,7 @@ button.box:focus-visible{outline:3px solid #d62828;outline-offset:3px}
 <canvas id="c"></canvas>
 <div class="logo"><svg viewBox="0 0 7 5" aria-hidden="true"><g fill="#ff6b9d"><rect x="2" y="0" width="3" height="1"/><rect x="1" y="1" width="5" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="4" y="2" width="3" height="1"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/></g><rect x="3" y="2" width="1" height="1" fill="#ffd23f"/></svg><span>flowers for may</span></div>
 <div class="box hint" id="hint">จิ้มที่สวนเพื่อปลูกดอกไม้</div>
+<canvas id="dogpop" width="46" height="34" hidden></canvas>
 <button class="box" id="clear">ล้างสวน</button>
 <script>
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
@@ -95,10 +102,94 @@ const MESSAGES=[
   'เธอเป็นคนเก่งของเค้าเสมอ',
   'รักแฟน'
 ];
+let dog=null;const hearts=[];
+const DW=22,GC='#e3a33a',LC='#f4cd7a',DK='#b9791f';
+const HEART=[".h.h.","hhhhh",".hhh.","..h.."];
+const DBODY=[[3,5,12,6,GC],[4,5,10,1,LC],[5,10,8,1,LC],[13,4,3,7,GC],[13,8,3,3,LC],[14,1,7,6,GC],[16,1,4,1,LC],[19,4,3,3,LC],[21,4,1,2,'#222'],[18,3,1,1,'#222'],[15,2,3,4,DK]];
+const TA=[[0,2,2,4,GC],[1,5,3,2,GC],[0,3,1,2,LC]],TB=[[0,3,2,4,GC],[1,6,3,1,GC],[0,4,1,2,LC]];
+const LA=[[4,11,2,3,GC],[7,11,2,3,GC],[11,11,2,3,GC],[14,11,2,3,GC]],LB=[[5,11,2,3,GC],[8,11,2,3,GC],[10,11,2,3,GC],[13,11,2,3,GC]];
+function spawnDog(cx,cy){dog={x:-DW-2,y:Math.floor(cy/S)+1,tx:Math.min(Math.max(Math.floor(cx/S)-DW-2,2),W-DW-2),ph:'in',carry:true,flip:false,walk:true,last:0,t:0}}
+function dogStep(now){
+  const d=dog;if(!d)return;
+  const dt=Math.min(now-(d.last||now),60)/1000;d.last=now;d.walk=false;
+  if(d.ph==='in'){d.x+=40*dt;d.walk=true;if(d.x>=d.tx){d.x=d.tx;d.ph='give';d.t=now}}
+  else if(d.ph==='give'){
+    if(d.carry&&now-d.t>350){
+      d.carry=false;
+      flowers.push({x:Math.round(d.x)+DW+2,y:d.y-1,t:4,p:FIX[4],h:12,born:now,boom:false});
+      for(let k=0;k<3;k++)hearts.push({x:Math.round(d.x)+12+k*4,y:d.y-17-k*2,b:now+k*180});
+    }
+    if(now-d.t>2400){d.ph='out';d.flip=true}
+  }else{d.x-=40*dt;d.walk=true;if(d.x<-DW-2)dog=null}
+}
+function drawDog(d,now){
+  const x0=Math.round(d.x),y0=d.y-13,f=d.walk&&((now/130|0)%2);
+  const L=f?LB:LA,T=(d.ph==='give'&&!d.carry&&((now/160|0)%2))?TB:TA;
+  const all=[...T,...DBODY,...L,...L.map(l=>[l[0],13,2,1,LC])];
+  if(!d.carry)all.push([19,7,2,2,'#e8788a']);
+  for(const [x,y,w,h,c] of all)px(ctx,d.flip?x0+DW-x-w:x0+x,y0+y,w,h,c);
+  if(d.carry){
+    const mx=d.flip?x0-3:x0+DW+2;
+    sprite(ctx,mx,y0+3,4,FIX[4]);
+    px(ctx,mx,y0+4,1,2,'#2e7d32');
+    px(ctx,d.flip?mx+1:mx-2,y0+5,2,1,'#2e7d32');
+  }
+}
+function drawHearts(now){
+  for(let i=hearts.length-1;i>=0;i--){
+    const h=hearts[i],t=now-h.b;
+    if(t>1300){hearts.splice(i,1);continue}
+    if(t<0)continue;
+    const y=Math.round(h.y-t/70);
+    for(let j=0;j<4;j++)for(let k=0;k<5;k++)if(HEART[j][k]==='h')px(ctx,h.x+k,y+j,1,1,'#ff4d6d');
+  }
+}
+const dogcv=document.getElementById('dogpop'),dctx=dogcv.getContext('2d');
+let hideT=0,outT=0,wagUntil=0;
+function sizeDog(){const k=Math.max(4,Math.floor(Math.min(innerWidth*.8,360)/46));dogcv.style.width=46*k+'px';dogcv.style.height=34*k+'px'}
+sizeDog();addEventListener('resize',sizeDog);
+function paintDog(now){
+  const g=dctx,o=11,fast=now<wagUntil;
+  const R=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(o+x,y,w,h)};
+  const O='#e3a844',L='#f2c777',D='#b9791f',K='#222';
+  g.clearRect(0,0,46,34);
+  const tf=fast?[0,1,2,1][Math.floor(now/90)%4]:Math.floor(now/380)%2;
+  if(tf===0){R(26,26,4,3,O);R(29,22,4,5,O);R(31,19,3,4,O)}
+  else if(tf===1){R(26,27,5,3,O);R(30,25,4,4,O);R(32,23,2,3,O)}
+  else{R(26,28,5,3,O);R(30,28,4,4,O);R(32,31,2,3,O)}
+  R(9,20,18,14,O);R(14,21,8,13,L);
+  R(15,27,1,7,D);R(20,27,1,7,D);R(10,32,5,2,L);R(21,32,5,2,L);
+  R(4,6,5,12,D);R(27,6,5,12,D);
+  R(11,4,14,1,O);R(8,5,20,15,O);R(10,20,16,1,O);R(14,5,8,2,L);
+  R(13,12,10,8,'#fff3e0');R(16,12,4,2,K);R(15,15,6,1,K);R(16,16,4,3,'#ff7a90');
+  if(fast){R(11,11,1,1,K);R(12,10,2,1,K);R(14,11,1,1,K);R(21,11,1,1,K);R(22,10,2,1,K);R(24,11,1,1,K)}
+  else{R(12,9,2,3,K);R(22,9,2,3,K)}
+  R(11,21,14,2,'#d62828');R(17,23,2,2,'#ffd23f');
+  const F=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h)};
+  F(4,16,2,18,'#2e7d32');F(2,24,2,2,'#43a047');F(6,27,2,2,'#43a047');
+  F(3,7,4,3,'#ff6b9d');F(0,10,4,3,'#ff6b9d');F(6,10,4,3,'#ff6b9d');F(3,13,4,3,'#ff6b9d');F(4,10,2,3,'#ffd23f');
+}
+function setHide(){
+  clearTimeout(hideT);clearTimeout(outT);
+  hideT=setTimeout(()=>{dogcv.style.animation='popout .25s ease-in forwards';outT=setTimeout(()=>{dogcv.hidden=true},260)},8000);
+}
+function showDog(){
+  if(dogcv.hidden||dogcv.style.animation.startsWith('popout')){dogcv.hidden=false;dogcv.style.animation='none';void dogcv.offsetWidth;dogcv.style.animation='popin .55s ease-out'}
+  setHide();
+}
+dogcv.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  const now=performance.now();wagUntil=now+1800;
+  dogcv.style.animation='none';void dogcv.offsetWidth;dogcv.style.animation='hop .35s ease-out';
+  const r=dogcv.getBoundingClientRect();
+  for(let k=0;k<3;k++)hearts.push({x:Math.floor((r.left+r.width*(.3+Math.random()*.4))/S),y:Math.floor((r.top+r.height*.1)/S),b:now+k*140});
+  setHide();
+});
 let lastMsg=-1;
 function showMsg(cx,cy){
   if(!MESSAGES.length)return;
   lastMsg++;const i=lastMsg%MESSAGES.length;
+  if(i===MESSAGES.length-1)showDog();
   const el=document.createElement('div');
   el.className='box msg';el.textContent=MESSAGES[i];
   el.style.left=Math.min(Math.max(cx,90),innerWidth-90)+'px';
@@ -128,6 +219,7 @@ function frame(now){
       sprite(ctx,f.x,top,f.t,f.p);
     }
   }
+  if(!dogcv.hidden)paintDog(now);drawHearts(now);
   for(let i=sparks.length-1;i>=0;i--){
     const p=sparks[i];p.x+=p.vx*.5;p.y+=p.vy*.5;p.vy+=.03;p.l-=.025;
     if(p.l<=0){sparks.splice(i,1);continue}
