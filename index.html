@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>May's flower garden</title>
+<title>สวนดอกไม้พิกเซล</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box}
@@ -27,6 +27,16 @@ button.box:focus-visible{outline:3px solid #d62828;outline-offset:3px}
 @keyframes popout{to{transform:translate(-50%,-50%) scale(0)}}
 @keyframes hop{0%,100%{transform:translate(-50%,-50%)}40%{transform:translate(-50%,calc(-50% - 14px))}}
 @media (prefers-reduced-motion:reduce){#dogpop{animation:none!important}}
+#card{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10;width:min(78vw,300px,calc(94vh*5/8));aspect-ratio:5/8;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;padding:18px 14px 14px;border:4px solid #2b2b2b;box-shadow:6px 6px 0 #2b2b2b;color:#2b2b2b;cursor:pointer;background:#fff8dc}
+#card[hidden]{display:none}
+#card .cfr{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.55);border:3px solid #2b2b2b;margin-bottom:14px}
+#card canvas{width:144px;height:192px;max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges;display:block;transform:translateX(32%)}
+#card .cft{margin-top:auto}
+#card p{margin:0 0 10px;font-size:1.1rem;line-height:1.45}
+#card small{display:block;opacity:.7;font-size:.8rem}
+@media (prefers-reduced-motion:reduce){#card{animation:none!important}}
+.dogmsg{z-index:6;animation-duration:3.4s}
+.dogmsg::after{content:'';position:absolute;left:50%;bottom:-9px;width:12px;height:12px;background:#fff8dc;border:solid #2b2b2b;border-width:0 3px 3px 0;transform:translateX(-50%) rotate(45deg)}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
@@ -184,25 +194,27 @@ dogcv.addEventListener('pointerdown',e=>{
   const r=dogcv.getBoundingClientRect();
   for(let k=0;k<3;k++)hearts.push({x:Math.floor((r.left+r.width*(.3+Math.random()*.4))/S),y:Math.floor((r.top+r.height*.1)/S),b:now+k*140});
   setHide();
+  showMsg();
 });
+let plantN=0,nextDog=6+(Math.random()*10|0);
 let lastMsg=-1;
 function showMsg(cx,cy){
   if(!MESSAGES.length)return;
-  lastMsg++;const i=lastMsg%MESSAGES.length;
-  if(i===MESSAGES.length-1)showDog();
+  const d=new Date(),L=MESSAGES.length,i=(((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(2026,9,15))/864e5)%L+L)%L;
   const el=document.createElement('div');
-  el.className='box msg';el.textContent=MESSAGES[i];
-  el.style.left=Math.min(Math.max(cx,90),innerWidth-90)+'px';
-  el.style.top=Math.max(cy-28*S,132)+'px';
+  document.querySelectorAll('.dogmsg').forEach(n=>n.remove());el.className='box msg dogmsg';el.textContent=MESSAGES[i];
+  const r=dogcv.getBoundingClientRect();
+  el.style.left=Math.min(Math.max(r.left+r.width/2,90),innerWidth-90)+'px';
+  el.style.top=Math.max(r.top+r.height*.1-14,70)+'px';
   document.body.appendChild(el);
-  setTimeout(()=>el.remove(),2400);
+  setTimeout(()=>el.remove(),3400);
 }
 function plant(cx,cy){
   const x=Math.floor(cx/S),y=Math.floor(cy/S),hn=document.getElementById('hint');
   if(y<hY+3){hn.textContent='ปลูกได้เฉพาะบนพื้นหญ้านะ';hn.classList.remove('gone');clearTimeout(plant.t);plant.t=setTimeout(()=>hn.classList.add('gone'),1800);return}
   if(y<hY+3)return;
   const tt=Math.random()*SPR.length|0;flowers.push({x,y,t:tt,p:FIX[tt]||PALS[Math.random()*PALS.length|0],h:10+Math.random()*9|0,born:performance.now(),boom:false});
-  document.getElementById('hint').classList.add('gone');showMsg(cx,cy);
+  document.getElementById('hint').classList.add('gone');if(++plantN>=nextDog){plantN=0;nextDog=6+(Math.random()*10|0);setTimeout(showDog,500)}
 }
 function frame(now){
   ctx.drawImage(bgc,0,0);
